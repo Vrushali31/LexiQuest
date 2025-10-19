@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "AI Project Roadmap Assistant",
+  "version": "1.0",
+  "description": "Generate and refine project roadmaps with Chrome built-in AI.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  
+  "host_permissions": ["<all_urls>"]
+}
