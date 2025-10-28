@@ -1,16 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "AI Project Roadmap Assistant",
+  "name": "PolyglotPro",
+  "description": "Context-aware language mentor (MVP) — highlight text, translate, simplify, explain using Gemini Nano APIs.",
   "version": "1.0",
-  "description": "Generate and refine project roadmaps with Chrome built-in AI.",
   "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "popup/popup.html",
     "default_icon": "icon.png"
   },
-  
-  "host_permissions": ["<all_urls>"]
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["popup/popup.js"]
+    }
+  ]
 }
