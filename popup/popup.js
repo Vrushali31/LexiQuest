@@ -133,38 +133,152 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ===========================
      RENDER QUIZ UI
   ============================ */
-  function renderQuiz(quizData) {
-    quizContainer.innerHTML = `
-      <h3>🧠 Quiz Time!</h3>
-      ${quizData.map((q, i) => `
-        <div class="quiz-question" style="margin-bottom:10px;">
-          <p><b>Q${i + 1}:</b> ${q.question}</p>
-          ${q.type === 'mcq'
-            ? q.options.map(opt => `
-              <label style="display:block;">
-                <input type="radio" name="q${i}" value="${opt}"> ${opt}
-              </label>`).join('')
-            : `<input type="text" placeholder="Type your answer..." style="width:90%; padding:5px;">`
+  // function renderQuiz(quizData) {
+  //   quizContainer.innerHTML = `
+  //     <h3>🧠 Quiz Time!</h3>
+  //     ${quizData.map((q, i) => `
+  //       <div class="quiz-question" style="margin-bottom:10px;">
+  //         <p><b>Q${i + 1}:</b> ${q.question}</p>
+  //         ${q.type === 'mcq'
+  //           ? q.options.map(opt => `
+  //             <label style="display:block;">
+  //               <input type="radio" name="q${i}" value="${opt}"> ${opt}
+  //             </label>`).join('')
+  //           : `<input type="text" placeholder="Type your answer..." style="width:90%; padding:5px;">`
+  //         }
+  //       </div>
+  //     `).join('')}
+  //   `;
+  // }
+
+  /* ===========================
+   RENDER INTERACTIVE QUIZ
+============================ */
+function renderQuiz(quizData) {
+  quizContainer.innerHTML = `
+    <h3>🧠 Quiz Time!</h3>
+    ${quizData.map((q, i) => `
+      <div class="quiz-question" data-index="${i}" style="margin-bottom:10px;">
+        <p><b>Q${i + 1}:</b> ${q.question}</p>
+        ${q.type === 'mcq'
+          ? q.options.map(opt => `
+            <label style="display:block;">
+              <input type="radio" name="q${i}" value="${opt}"> ${opt}
+            </label>`).join('')
+          : `<input type="text" class="fill-answer" placeholder="Type your answer and press Enter..." style="width:90%; padding:5px;">`
+        }
+        <div class="feedback" style="margin-top:4px; font-size:0.85rem;"></div>
+      </div>
+    `).join('')}
+  `;
+
+  // Attach event listeners for MCQs
+  quizData.forEach((q, i) => {
+    const qEl = quizContainer.querySelector(`.quiz-question[data-index="${i}"]`);
+    const feedbackEl = qEl.querySelector('.feedback');
+
+    if (q.type === 'mcq') {
+      const radios = qEl.querySelectorAll('input[type="radio"]');
+      radios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          const selected = qEl.querySelector('input[type="radio"]:checked');
+          const userAnswer = selected ? selected.value.trim() : '';
+
+          if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
+            feedbackEl.textContent = '✅ Correct!';
+            feedbackEl.style.color = 'green';
+          } else {
+            feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
+            feedbackEl.style.color = 'red';
           }
-        </div>
-      `).join('')}
-    `;
-  }
+
+          // Disable all options after selection
+          radios.forEach(r => r.disabled = true);
+        });
+      });
+    } else {
+      // Fill-in-the-blank handling
+      const input = qEl.querySelector('.fill-answer');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const userAnswer = input.value.trim();
+          if (!userAnswer) return;
+
+          if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
+            feedbackEl.textContent = '✅ Correct!';
+            feedbackEl.style.color = 'green';
+          } else {
+            feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
+            feedbackEl.style.color = 'red';
+          }
+
+          input.disabled = true;
+        }
+      });
+    }
+  });
+}
+
 
   /* ===========================
      SAVE QUIZ TO LOCAL STORAGE
   ============================ */
-  saveQuizBtn?.addEventListener('click', async () => {
-    const lang = langSelect.value;
-    const quizHtml = quizContainer.innerHTML;
+  // saveQuizBtn?.addEventListener('click', async () => {
+  //   const lang = langSelect.value;
+  //   const quizHtml = quizContainer.innerHTML;
 
-    const data = await chrome.storage.local.get(['quizzes']);
-    const quizzes = data.quizzes || {};
-    if (!quizzes[lang]) quizzes[lang] = [];
+  //   const data = await chrome.storage.local.get(['quizzes']);
+  //   const quizzes = data.quizzes || {};
+  //   if (!quizzes[lang]) quizzes[lang] = [];
 
-    quizzes[lang].push({ html: quizHtml, date: new Date().toISOString() });
+  //   quizzes[lang].push({ html: quizHtml, date: new Date().toISOString() });
 
-    await chrome.storage.local.set({ quizzes });
-    alert(`✅ Quiz saved to your ${lang} notebook!`);
+  //   await chrome.storage.local.set({ quizzes });
+  //   alert(`✅ Quiz saved to your ${lang} notebook!`);
+  // });
+
+  /* ===========================
+   SAVE QUIZ + TRANSLATION TO NOTEBOOK
+============================ */
+saveQuizBtn?.addEventListener('click', async () => {
+  const lang = langSelect.value;
+  const quizHtml = quizContainer.innerHTML;
+  const translatedText = lastTranslatedText || outputEl.textContent.trim();
+
+  if (!translatedText || !quizHtml) {
+    alert('⚠️ Please translate text and generate a quiz before saving.');
+    return;
+  }
+
+  // Fetch existing notebooks
+  const data = await chrome.storage.local.get(['notebooks']);
+  const notebooks = data.notebooks || {};
+
+  // Check if this language notebook exists
+  let notebook = notebooks[lang];
+
+  if (!notebook) {
+    // Ask if the user wants to create a new notebook
+    const createNew = confirm(
+      `No notebook found for ${lang}. Would you like to create one?`
+    );
+    if (!createNew) return;
+
+    notebook = [];
+    notebooks[lang] = notebook;
+  }
+
+  // Add entry (translation + quiz)
+  notebook.push({
+    text: translatedText,
+    quizHtml,
+    date: new Date().toISOString(),
   });
+
+  // Save back to Chrome storage
+  await chrome.storage.local.set({ notebooks });
+
+  alert(`✅ Saved to your "${lang}" notebook!`);
+});
+
 });

@@ -82,7 +82,7 @@ async function generateQuiz(text, { targetLanguage }) {
   Use the following text as context: "${text}".
 
   Include:
-  - 2 multiple-choice questions (each with 4 options and one correct answer)
+  - 2 multiple-choice questions regarding the meaning of phrases in ${targetLanguage} (each with 4 options and one correct answer)
   - 1 fill-in-the-blank question.
   Return valid JSON only, in this format:
   [
