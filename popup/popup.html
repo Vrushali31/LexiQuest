@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolyPlot Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 16px;
+      width: 340px;
+      background-color: #f9fafb;
+      color: #111827;
+      overflow-x: hidden;
+    }
+
+    h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-align: center;
+      color: #2563eb;
+      margin-bottom: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: space-between;
+      background-color: #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: none;
+      font-weight: 600;
+      cursor: pointer;
+      color: #374151;
+      transition: 0.2s;
+    }
+
+    .tabs button.active {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    section {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #374151;
+    }
+
+    textarea {
+      width: 100%;
+      height: 90px;
+      padding: 10px;
+      font-size: 0.9rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      resize: none;
+      outline: none;
+      margin-bottom: 10px;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+    }
+
+    button {
+      background-color: #2563eb;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #1d4ed8;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .mode-selector {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .mode-selector button {
+      flex: 1;
+      margin: 0 3px;
+      background-color: #e5e7eb;
+      color: #111827;
+    }
+
+    .mode-selector button.active {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    #output {
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #f3f4f6;
+      min-height: 80px;
+      border: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4285f4;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      animation: spin 1s linear infinite;
+      display: none;
+      margin: 8px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Quiz styles */
+    #quizContainer {
+      display: none;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+    #quizContainer h3 {
+      text-align: center;
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+
+  </style>
+</head>
+<body>
+  <h1>🌐 PolyPlot Pro</h1>
+
+  <!-- Tab navigation -->
+  <div class="tabs">
+    <button id="tab-translate" class="active">🔤 Translate</button>
+    <button id="tab-quiz">🧠 Quiz</button>
+  </div>
+
+  <!-- Translation section -->
+  <section id="translate-section" class="active">
+    <div class="label">Selected Text</div>
+    <textarea id="input" placeholder="Your selected text appears here..."></textarea>
+
+    <div class="label">Translate To</div>
+    <select id="targetLang">
+      <option value="en">English</option>
+      <option value="es">Spanish</option>
+      <option value="ja">Japanese</option>
+      
+    </select>
+
+    <div class="label">Mode</div>
+    <div class="mode-selector">
+      <button data-mode="as-is" class="active">As-Is</button>
+      <button data-mode="simplify">Simplify</button>
+      <button data-mode="enhance">Enhance</button>
+    </div>
+
+    <button id="translate">Translate</button>
+    <div id="loader" class="loader"></div>
+    <div id="output">Translation will appear here...</div>
+  </section>
+
+  <!-- Quiz section -->
+  <section id="quiz-section">
+    <p style="font-size:0.9rem; color:#374151;">
+      Generate a quiz based on your latest translation to practice the target language.
+    </p>
+    <button id="generateQuiz">🎯 Generate Quiz</button>
+    <div id="loader" class="loader"></div>
+    <div id="quizContainer"></div>
+    <button id="saveQuiz" style="display:none;">💾 Save Quiz</button>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
