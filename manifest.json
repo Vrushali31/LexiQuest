@@ -17,5 +17,12 @@
       "matches": ["<all_urls>"],
       "js": ["popup/popup.js"]
     }
-  ]
+  ],
+  "web_accessible_resources": [
+  {
+    "resources": ["notebook.html"],
+    "matches": ["<all_urls>"]
+  }
+]
+
 }
