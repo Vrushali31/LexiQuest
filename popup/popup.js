@@ -1,4 +1,5 @@
 import { handleAction } from '../gemini/gemini-controller.js';
+import { analyzeSkillsFromQuiz } from '../skill-analyzer.js';
 
 console.log("popup.js loaded!");
 
@@ -16,10 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentMode = 'as-is';
   let lastTranslatedText = '';
 
-  /* ===========================
-     MODE SELECTION
-  ============================ */
-  modeButtons.forEach(btn => {
+  
+  // MODE SELECTION
+    modeButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       modeButtons.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -27,10 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* ===========================
-     TAB SWITCHING
-  ============================ */
-  const tabTranslate = document.getElementById('tab-translate');
+  
+  //TAB SWITCHING
+    const tabTranslate = document.getElementById('tab-translate');
   const tabQuiz = document.getElementById('tab-quiz');
   const translateSection = document.getElementById('translate-section');
   const quizSection = document.getElementById('quiz-section');
@@ -52,9 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
   tabTranslate?.addEventListener('click', () => switchTab('translate'));
   tabQuiz?.addEventListener('click', () => switchTab('quiz'));
 
-  /* ===========================
-     AUTOFILL SELECTED TEXT
-  ============================ */
+
+  //AUTOFILL SELECTED TEXT
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
     if (!tab) return;
@@ -72,10 +70,9 @@ document.addEventListener('DOMContentLoaded', () => {
     );
   });
 
-  /* ===========================
-     TRANSLATE HANDLER
-  ============================ */
-  translateBtn.addEventListener('click', async () => {
+  
+    //TRANSLATE HANDLER
+    translateBtn.addEventListener('click', async () => {
     const text = inputEl.value.trim();
     if (!text) return alert('Please enter or select some text.');
 
@@ -100,10 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  /* ===========================
-     QUIZ GENERATION
-  ============================ */
-  generateQuizBtn?.addEventListener('click', async () => {
+  
+  //QUIZ GENERATION
+    generateQuizBtn?.addEventListener('click', async () => {
     const text = lastTranslatedText || outputEl.textContent.trim();
     const lang = langSelect.value;
     console.log("Inside generate quiz")
@@ -207,28 +203,9 @@ function renderQuiz(quizData) {
 }
 
 
+ saveQuizBtn?.addEventListener('click', async (e) => {
+  e.preventDefault(); // prevent popup auto-closing
 
-  /* ===========================
-     SAVE QUIZ TO LOCAL STORAGE
-  ============================ */
-  // saveQuizBtn?.addEventListener('click', async () => {
-  //   const lang = langSelect.value;
-  //   const quizHtml = quizContainer.innerHTML;
-
-  //   const data = await chrome.storage.local.get(['quizzes']);
-  //   const quizzes = data.quizzes || {};
-  //   if (!quizzes[lang]) quizzes[lang] = [];
-
-  //   quizzes[lang].push({ html: quizHtml, date: new Date().toISOString() });
-
-  //   await chrome.storage.local.set({ quizzes });
-  //   alert(`✅ Quiz saved to your ${lang} notebook!`);
-  // });
-
-  /* ===========================
-   SAVE QUIZ + TRANSLATION TO NOTEBOOK
-============================ */
-saveQuizBtn?.addEventListener('click', async () => {
   const lang = langSelect.value;
   const quizHtml = quizContainer.innerHTML;
   const translatedText = lastTranslatedText || outputEl.textContent.trim();
@@ -238,278 +215,90 @@ saveQuizBtn?.addEventListener('click', async () => {
     return;
   }
 
-  // Fetch existing notebooks
+  // Collect quiz data for Gemini analysis
+  const quizData = [...quizContainer.querySelectorAll('.quiz-question')].map(qEl => {
+    const qText = qEl.querySelector('p')?.textContent || '';
+    const options = [...qEl.querySelectorAll('input[type=radio]')].map(opt => ({
+      text: opt.nextSibling?.textContent?.trim(),
+      selected: opt.checked
+    }));
+    const feedback = qEl.querySelector('.feedback')?.textContent || '';
+    return { question: qText, options, feedback };
+  });
+
+  console.log("Sending quiz data to Gemini Nano:", quizData);
+
+  // Call Gemini Nano for skill analysis
+  const analysis = await onQuizComplete(quizData);
+
+  if (!analysis) {
+    alert('⚠️ AI analysis failed. Saving without skill data.');
+  }
+
+  // Retrieve or create notebooks
   const data = await chrome.storage.local.get(['notebooks']);
   const notebooks = data.notebooks || {};
+  const lang_name_map = { 'es': 'Español', 'ja': 'Japanese', 'en': 'English' };
 
-  // Check if this language notebook exists
   let notebook = notebooks[lang];
-
-
-  const lang_name_map = {
-    'es': 'Español',
-    'ja': 'Japanese',
-    'en': 'English',
-  };
-
   if (!notebook) {
-    // Ask if the user wants to create a new notebook
-    const createNew = confirm(
-      `No notebook found for ${lang_name_map[lang]}. Would you like to create one?`
-    );
+    const createNew = confirm(`No notebook for ${lang_name_map[lang] || lang}. Create one?`);
     if (!createNew) return;
-
     notebook = [];
     notebooks[lang] = notebook;
   }
 
-  // Add entry (translation + quiz)
+  // Save notebook entry with AI analysis
   notebook.push({
     text: translatedText,
     quizHtml,
     date: new Date().toISOString(),
+    analysis
   });
 
-  // Save back to Chrome storage
   await chrome.storage.local.set({ notebooks });
+  await chrome.storage.local.set({ skillAnalysis: analysis });
 
-  alert(`✅ Saved to your "${lang}" notebook!`);
+  alert(`✅ Saved to your "${lang}" notebook with AI analysis!`);
 });
+
 
   const openNotebookBtn = document.getElementById('openNotebook');
   openNotebookBtn?.addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('notebook.html') });
   });
 
+// --- Main analysis function ---
+async function onQuizComplete(quizData) {
+  console.log("Sending quiz data to Gemini Nano Prompt API...");
+
+  const prompt = `
+  Analyze this quiz interaction and identify what linguistic or conceptual skills were demonstrated or improved.
+  Return JSON with:
+  {
+    "learned_skills": [{"concept": "...", "confidence": 0.0-1.0}],
+    "suggested_next": ["...", "..."]
+  }
+
+  Quiz data:
+  ${JSON.stringify(quizData, null, 2)}
+  `;
+
+  try {
+    const analysis = await handleAction('prompt',prompt);
+    console.log("✅ Gemini analysis result:", analysis);
+    return analysis;
+  } catch (err) {
+    console.error("❌ Gemini analysis failed:", err);
+    return null;
+  }
+}
+
+
 
 });
 
 
-// import { handleAction } from '../gemini/gemini-controller.js';
 
-// console.log("popup.js loaded!");
 
-// document.addEventListener('DOMContentLoaded', () => {
-//   const inputEl = document.getElementById('input');
-//   const outputEl = document.getElementById('output');
-//   const langSelect = document.getElementById('targetLang');
-//   const modeButtons = document.querySelectorAll('.mode-selector button');
-//   const loader = document.getElementById('loader');
-//   const translateBtn = document.getElementById('translate');
-//   const generateQuizBtn = document.getElementById('generateQuiz');
-//   const saveQuizBtn = document.getElementById('saveQuiz');
-//   const quizContainer = document.getElementById('quizContainer');
-//   const openNotebookBtn = document.getElementById('openNotebook');
-
-//   let currentMode = 'as-is';
-//   let lastTranslatedText = '';
-//   let lastQuizData = null; // 🆕 store structured quiz data
-
-//   /* ===========================
-//      MODE SELECTION
-//   ============================ */
-//   modeButtons.forEach(btn => {
-//     btn.addEventListener('click', () => {
-//       modeButtons.forEach(b => b.classList.remove('active'));
-//       btn.classList.add('active');
-//       currentMode = btn.dataset.mode;
-//     });
-//   });
-
-//   /* ===========================
-//      TAB SWITCHING
-//   ============================ */
-//   const tabTranslate = document.getElementById('tab-translate');
-//   const tabQuiz = document.getElementById('tab-quiz');
-//   const translateSection = document.getElementById('translate-section');
-//   const quizSection = document.getElementById('quiz-section');
-
-//   function switchTab(tab) {
-//     if (tab === 'translate') {
-//       tabTranslate.classList.add('active');
-//       tabQuiz.classList.remove('active');
-//       translateSection.classList.add('active');
-//       quizSection.classList.remove('active');
-//     } else {
-//       tabQuiz.classList.add('active');
-//       tabTranslate.classList.remove('active');
-//       quizSection.classList.add('active');
-//       translateSection.classList.remove('active');
-//     }
-//   }
-
-//   tabTranslate?.addEventListener('click', () => switchTab('translate'));
-//   tabQuiz?.addEventListener('click', () => switchTab('quiz'));
-
-//   /* ===========================
-//      AUTOFILL SELECTED TEXT
-//   ============================ */
-//   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-//     const tab = tabs[0];
-//     if (!tab) return;
-
-//     chrome.scripting.executeScript(
-//       {
-//         target: { tabId: tab.id },
-//         func: () => window.getSelection().toString(),
-//       },
-//       (result) => {
-//         if (result && result[0] && result[0].result) {
-//           inputEl.value = result[0].result.trim();
-//         }
-//       }
-//     );
-//   });
-
-//   /* ===========================
-//      TRANSLATE HANDLER
-//   ============================ */
-//   translateBtn.addEventListener('click', async () => {
-//     const text = inputEl.value.trim();
-//     if (!text) return alert('Please enter or select some text.');
-
-//     translateBtn.disabled = true;
-//     loader.style.display = 'inline-block';
-//     outputEl.textContent = '';
-
-//     try {
-//       const translated = await handleAction('translate', text, {
-//         targetLanguage: langSelect.value,
-//         mode: currentMode
-//       });
-
-//       outputEl.textContent = translated;
-//       lastTranslatedText = translated;
-//     } catch (err) {
-//       outputEl.textContent = '⚠️ Error: ' + err.message;
-//       console.error(err);
-//     } finally {
-//       translateBtn.disabled = false;
-//       loader.style.display = 'none';
-//     }
-//   });
-
-//   /* ===========================
-//      QUIZ GENERATION
-//   ============================ */
-//   generateQuizBtn?.addEventListener('click', async () => {
-//     const text = lastTranslatedText || outputEl.textContent.trim();
-//     const lang = langSelect.value;
-
-//     if (!text) return alert('Please translate some text first.');
-
-//     generateQuizBtn.disabled = true;
-//     loader.style.display = 'inline-block';
-//     quizContainer.innerHTML = '';
-
-//     try {
-//       const quizData = await handleAction('generateQuiz', text, { targetLanguage: lang });
-//       lastQuizData = quizData; // 🆕 store structured quiz
-//       renderQuiz(quizData);
-//       quizContainer.style.display = 'block';
-//       saveQuizBtn.style.display = 'inline-block';
-//     } catch (err) {
-//       quizContainer.textContent = '⚠️ Failed to generate quiz: ' + err.message;
-//     } finally {
-//       loader.style.display = 'none';
-//       generateQuizBtn.disabled = false;
-//     }
-//   });
-
-//   /* ===========================
-//      RENDER INTERACTIVE QUIZ
-//   ============================ */
-//   function renderQuiz(quizData) {
-//     quizContainer.innerHTML = `
-//       <h3>🧠 Quiz Time!</h3>
-//       ${quizData.map((q, i) => `
-//         <div class="quiz-question" data-index="${i}" style="margin-bottom:10px;">
-//           <p><b>Q${i + 1}:</b> ${q.question}</p>
-//           ${q.type === 'mcq'
-//             ? q.options.map(opt => `
-//               <label style="display:block;">
-//                 <input type="radio" name="q${i}" value="${opt}"> ${opt}
-//               </label>`).join('')
-//             : `<input type="text" class="fill-answer" placeholder="Type your answer and press Enter..." style="width:90%; padding:5px;">`
-//           }
-//           <div class="feedback" style="margin-top:4px; font-size:0.85rem;"></div>
-//         </div>
-//       `).join('')}
-//     `;
-
-//     quizData.forEach((q, i) => {
-//       const qEl = quizContainer.querySelector(`.quiz-question[data-index="${i}"]`);
-//       const feedbackEl = qEl.querySelector('.feedback');
-
-//       if (q.type === 'mcq') {
-//         const radios = qEl.querySelectorAll('input[type="radio"]');
-//         radios.forEach(radio => {
-//           radio.addEventListener('change', () => {
-//             const selected = qEl.querySelector('input[type="radio"]:checked');
-//             const userAnswer = selected ? selected.value.trim() : '';
-//             if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
-//               feedbackEl.textContent = '✅ Correct!';
-//               feedbackEl.style.color = 'green';
-//             } else {
-//               feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
-//               feedbackEl.style.color = 'red';
-//             }
-//             radios.forEach(r => r.disabled = true);
-//           });
-//         });
-//       } else {
-//         const input = qEl.querySelector('.fill-answer');
-//         input.addEventListener('keydown', (e) => {
-//           if (e.key === 'Enter') {
-//             const userAnswer = input.value.trim();
-//             if (!userAnswer) return;
-//             if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
-//               feedbackEl.textContent = '✅ Correct!';
-//               feedbackEl.style.color = 'green';
-//             } else {
-//               feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
-//               feedbackEl.style.color = 'red';
-//             }
-//             input.disabled = true;
-//           }
-//         });
-//       }
-//     });
-//   }
-
-//   /* ===========================
-//      SAVE QUIZ + TRANSLATION TO NOTEBOOK (structured)
-//   ============================ */
-//   saveQuizBtn?.addEventListener('click', async () => {
-//     const lang = langSelect.value;
-//     const translatedText = lastTranslatedText || outputEl.textContent.trim();
-
-//     if (!translatedText || !lastQuizData) {
-//       alert('⚠️ Please translate text and generate a quiz before saving.');
-//       return;
-//     }
-
-//     const data = await chrome.storage.local.get(['notebooks']);
-//     const notebooks = data.notebooks || {};
-
-//     if (!notebooks[lang]) {
-//       const createNew = confirm(`No notebook found for ${lang}. Create one?`);
-//       if (!createNew) return;
-//       notebooks[lang] = [];
-//     }
-
-//     notebooks[lang].push({
-//       text: translatedText,
-//       quiz: lastQuizData, // 🆕 structured quiz
-//       date: new Date().toISOString()
-//     });
-
-//     await chrome.storage.local.set({ notebooks });
-//     alert(`✅ Saved to your "${lang}" notebook!`);
-//   });
-
-//   openNotebookBtn?.addEventListener('click', () => {
-//     chrome.tabs.create({ url: chrome.runtime.getURL('notebook.html') });
-//   });
-// });
 

@@ -6,7 +6,7 @@ export async function handleAction(action, text, options = {}) {
 
   switch(action) {
     case 'translate': {
-      // Step 1: Detect language if needed
+      // Detect language if needed
       const detected = await GeminiNano.detectLanguage(text);
       console.log(detected)
       const sourceLanguage = detected?.detectedLanguage || 'en';
@@ -14,10 +14,10 @@ export async function handleAction(action, text, options = {}) {
       console.log("Target lang")
       console.log(targetLanguage)
 
-      // Step 2: Translate text
+      // Translate text
       const translatedText = await GeminiNano.translate(text, sourceLanguage, targetLanguage);
 
-      // Step 3: If mode is simplify/enhance, use Rewriter API on translated text
+      // If mode is simplify/enhance, use Rewriter API on translated text
       if (mode !== 'as-is') {
         const rewriterOptions = {
           tone: mode === 'simplify' ? 'more-casual' : 'more-formal',
@@ -41,6 +41,9 @@ export async function handleAction(action, text, options = {}) {
     case 'write':
       return await GeminiNano.write(text, { tone: 'formal', outputLanguage: targetLanguage });
 
+    case 'prompt':
+      return await GeminiNano.prompt(text);
+
     case 'generateQuiz':
         return await generateQuiz(text, options);
 
@@ -51,31 +54,8 @@ export async function handleAction(action, text, options = {}) {
   
 }
 
-// async function generateQuiz(text, { targetLanguage }) {
-//     console.log("Inside generateQuiz controller")
-//   const prompt = `
-//   Create a short interactive quiz to help a user learn ${targetLanguage}.
-//   The quiz should be based on this text: "${text}".
-
-//   Include:
-//   - 2 multiple-choice questions (each with 4 options and one correct answer)
-//   - 1 fill-in-the-blank question.
-//   Return JSON only, in this format:
-//   [
-//     {"type": "mcq", "question": "...", "options": ["A", "B", "C", "D"], "answer": "A"},
-//     {"type": "mcq", "question": "...", "options": ["..."], "answer": "..."},
-//     {"type": "fill", "question": "....", "answer": "..."}
-//   ]
-//   `;
-
-//   const response = await gemini.generateContent(prompt);
-//   console.log("Got response")
-//   const quiz = JSON.parse(response.response.text());
-//   return quiz;
-// }
-
 async function generateQuiz(text, { targetLanguage }) {
-  console.log("🧠 Inside generateQuiz (Gemini Nano Prompt API)");
+  console.log("Inside generateQuiz (Gemini Nano Prompt API)");
 
   const prompt = `
   Create a short quiz to help a user learn ${targetLanguage}.
@@ -95,7 +75,7 @@ async function generateQuiz(text, { targetLanguage }) {
   try {
     // ✅ Use Gemini Nano (Prompt API)
     if ("ai" in self && "languageModel" in ai) {
-      console.log("🪶 Using Gemini Nano (local model)...");
+      console.log("Using Gemini Nano (local model)...");
       const session = await ai.languageModel.create({ model: "gemini-nano" });
 
       const result = await session.prompt(prompt);
@@ -111,7 +91,7 @@ async function generateQuiz(text, { targetLanguage }) {
       return quiz;
     }
 
-    // 🚨 Fallback (if Nano not available)
+    // Fallback (if Nano not available)
     console.warn("⚠️ Gemini Nano not available, using fallback cloud model...");
     const response = await GeminiNano.write(prompt, { tone: 'neutral', outputLanguage: targetLanguage });
     const jsonStart = response.indexOf('[');

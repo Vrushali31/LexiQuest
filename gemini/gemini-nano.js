@@ -10,6 +10,7 @@ export const GeminiNano = {
       Rewriter: 'Rewriter' in self ? await Rewriter.availability() : 'unavailable',
       Translator: 'Translator' in self ? 'available' : 'unavailable',
       LanguageDetector: 'LanguageDetector' in self ? 'available' : 'unavailable',
+      Prompt:'Prompt' in self ? await Prompt.availability() : 'unavailable',
     };
     console.table(apis);
     return apis;
@@ -89,8 +90,7 @@ export const GeminiNano = {
   },
 
   /** Rewrite existing text **/
-  /** Rewrite existing text **/
-async rewrite(text, options = {}) {
+  async rewrite(text, options = {}) {
   if (!('Rewriter' in self)) throw new Error('Rewriter API not supported.');
 
   const available = await Rewriter.availability();
@@ -112,5 +112,63 @@ async rewrite(text, options = {}) {
   const rewritten = await rewriter.rewrite(text, { context: options.context || '' });
   return rewritten;
 },
+
+/** General-purpose prompt using the Chrome Prompt API (Gemini Nano) **/
+async prompt(promptText, options = {}) {
+  try {
+    if (!('LanguageModel' in self))
+      throw new Error('Prompt API not supported in this environment.');
+
+    // Check model availability
+    const availability = await LanguageModel.availability({
+      expectedInputs: [{ type: "text", languages: ["en"] }],
+      expectedOutputs: [{ type: "text", languages: ["en"] }]
+    });
+
+    if (availability === 'unavailable')
+      throw new Error('Gemini Nano Prompt API unavailable.');
+
+    if (availability === 'downloadable' || availability === 'downloading') {
+      console.log('Gemini Nano model needs to be downloaded. Waiting for user interaction...');
+    }
+
+    // Create a session
+    const session = await LanguageModel.create({
+      expectedInputs: [{ type: "text", languages: ["en"] }],
+      expectedOutputs: [{ type: "text", languages: ["en"] }],
+      monitor(m) {
+        m.addEventListener('downloadprogress', e => {
+          console.log(`Downloaded ${(e.loaded * 100).toFixed(1)}%`);
+        });
+      },
+      initialPrompts: [
+        { role: 'system', content: options.systemPrompt || 'You are a helpful assistant that returns JSON if requested.' }
+      ],
+    });
+
+    // Prompt the model (array format is required)
+    const result = await session.prompt([
+      { role: 'user', content: promptText }
+    ]);
+
+    session.destroy?.();
+
+    // Try to parse JSON if possible
+    const jsonStart = result.indexOf("{");
+    const jsonEnd = result.lastIndexOf("}");
+    if (jsonStart !== -1 && jsonEnd !== -1) {
+      try {
+        return JSON.parse(result.slice(jsonStart, jsonEnd + 1));
+      } catch {
+        console.warn("⚠️ Could not parse strict JSON. Returning raw text.");
+      }
+    }
+
+    return result;
+  } catch (err) {
+    console.error("❌ GeminiNano.prompt() failed:", err);
+    throw err;
+  }
+}
 
 };
