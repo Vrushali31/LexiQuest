@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "PolyglotPro",
+  "name": "LexiQuest",
   "description": "Context-aware language mentor (MVP) — highlight text, translate, simplify, explain using Gemini Nano APIs.",
   "version": "1.0",
   "permissions": ["activeTab", "scripting", "storage"],

@@ -202,7 +202,10 @@
     </div>
 
     <button id="translate">Translate</button>
-    <div id="loader" class="loader"></div>
+    <!-- <div id="loader" class="loader"></div> -->
+    <div id="quizLoaderWrapperT" style="display:flex; justify-content:center; margin:10px 0;">
+      <div id="loader" class="loader"></div>
+    </div>
     <div id="output">Translation will appear here...</div>
   </section>
 
@@ -212,7 +215,10 @@
       Generate a quiz based on your latest translation to practice the target language.
     </p>
     <button id="generateQuiz">🎯 Generate Quiz</button>
-    <div id="loader" class="loader"></div>
+    <div id="quizLoaderWrapper" style="display:flex; justify-content:center; margin:10px 0;">
+      <div id="Quizloader" class="loader"></div>
+    </div>
+    <!-- <div id="Quizloader" class="loader"></div> -->
     <div id="quizContainer"></div>
     <button id="saveQuiz" style="display:none;">💾 Save Quiz</button>
     <button id="openNotebook">📓 Open Notebook</button>

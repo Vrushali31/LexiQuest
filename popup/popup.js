@@ -9,10 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const langSelect = document.getElementById('targetLang');
   const modeButtons = document.querySelectorAll('.mode-selector button');
   const loader = document.getElementById('loader');
+  const quizLoader = document.getElementById('Quizloader');
   const translateBtn = document.getElementById('translate');
   const generateQuizBtn = document.getElementById('generateQuiz');
   const saveQuizBtn = document.getElementById('saveQuiz');
   const quizContainer = document.getElementById('quizContainer');
+
+  generateQuizBtn.disabled = true;
+
 
   let currentMode = 'as-is';
   let lastTranslatedText = '';
@@ -88,9 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       outputEl.textContent = translated;
       lastTranslatedText = translated;
+      generateQuizBtn.disabled = false;
+
     } catch (err) {
       outputEl.textContent = '⚠️ Error: ' + err.message;
       console.error(err);
+      generateQuizBtn.disabled = true;
+
     } finally {
       translateBtn.disabled = false;
       loader.style.display = 'none';
@@ -107,7 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(text)
 
     generateQuizBtn.disabled = true;
-    loader.style.display = 'inline-block';
+    //quizContainer.innerHTML = '<p id="l1" style="text-align:center; color:#2563eb;"> Generating quiz, please wait...</p>';
+
+    quizLoader.style.display = 'inline-block';
     quizContainer.innerHTML = '';
 
     try {
@@ -121,8 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       quizContainer.textContent = '⚠️ Failed to generate quiz: ' + err.message;
     } finally {
-      loader.style.display = 'none';
+      quizLoader.style.display = 'none';
       generateQuizBtn.disabled = false;
+      //quizContainer.querySelector('#l1')?.remove();
+
     }
   });
 
