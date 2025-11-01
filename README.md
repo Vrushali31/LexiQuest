@@ -1,35 +1,74 @@
-# PolyglotPro (MVP) — Chrome Extension
+# 🧠 LexiQuest — Chrome Extension
+![image](https://github.com/user-attachments/assets/ea19a901-489e-4eed-b1d3-5a05253fd11e)
+### *Your AI-Powered Learning Assistant*
 
-PolyglotPro is a hackathon-ready MVP that turns highlighted web text into an interactive learning moment:
-- Translate (to English by default)
-- Simplify (rewrite to plain English)
-- Explain grammar / key points
+LexiQuest transforms your daily browsing into meaningful language learning moments.  
+Highlight any text — and instantly **translate**, **simplify**, and **analyze** it using built-in Gemini Nano APIs.  
 
-All features are built to use **on-device Gemini Nano APIs** (Prompt, Translator, Rewriter, Summarizer, Proofreader).
+This smart extension goes beyond translation — it helps you *learn through life, not just lessons.*
 
-## How to load locally (development)
-1. Clone or copy this folder to your machine.
-2. Open Chrome (preferably a version with built-in AI / Canary if required).
-3. Navigate to `chrome://extensions`.
-4. Enable **Developer mode** (top-right).
-5. Click **Load unpacked** → select the `polyglotpro/` folder.
-6. Open any web page, highlight some text, click the PolyglotPro extension icon.
-7. The selected text should appear in the popup (or paste text), then click Translate / Simplify / Explain.
+---
 
-## Where to plug in real Gemini Nano calls
-Replace the placeholder implementations in `gemini/gemini-nano.js` with the exact built-in API calls your hackathon environment provides. The extension expects each wrapper function to return a plain text string.
+## ✨ Features
 
-## Next steps (hackathon stretch goals)
-- Add Summarizer, Proofreader, Writer actions in the popup.
-- Implement "Save to Notebook" and a review/quiz flow (Writer + Proofreader).
-- Add difficulty levels (A1..C2) and per-user progress (local storage).
-- Add pronunciation audio (on-device TTS) and speech practice.
+- 🌍 **Translate** text into your target language (English by default)  
+- 🪶 **Simplify** complex phrases into plain, learner-friendly language  
+- 🧩 **Explain Grammar & Key Concepts** using AI reasoning  
+- 🧠 **Generate Quizzes** for deeper retention  
+- 📘 **Save quizzes to your Notebook** for later review  
+- 📊 **AI Skill Graph Analysis** automatically visualizes learning progress  
 
-## Demo script (90s)
-1. Open a French news article.
-2. Highlight a paragraph → open extension.
-3. Click "Translate" — show translation.
-4. Click "Simplify" — show simplified rewrite.
-5. Click "Explain Grammar" — show prompt-based explanation.
-6. Save example to Notebook (stretch goal).
+All features run using **on-device Gemini Nano APIs** for privacy, speed, and offline availability:  
+**Prompt**, **Translator**, **Rewriter**, **Summarizer**, and **Language Detector APIs**.
 
+---
+
+## ⚙️ How to Load Locally (Development)
+
+1. Clone or copy this folder to your machine.  
+2. Open **Chrome** (preferably a version with built-in AI or **Canary**).  
+3. Go to `chrome://extensions`.  
+4. Enable **Developer mode** (top-right).  
+5. Click **Load unpacked** → select the `LexiQuest/` folder.  
+6. Open any web page → highlight text → click the **LexiQuest** icon.  
+7. The selected text appears in the popup — click **Translate**, **Simplify**, or **Explain**.
+
+---
+
+## 🔗 Where to Plug in Real Gemini Nano Calls
+
+Replace the placeholder implementations in  
+`gemini/gemini-nano.js`  
+with the actual built-in API calls from your hackathon environment.  
+
+Each function should return a **plain text string** (translation, simplification, explanation, etc.).
+
+---
+
+## 🧩 How It Works
+
+When users highlight text and select an action (Translate , Simplify, Enhance, or Generate Quiz),  
+LexiQuest uses the Gemini Nano APIs to process the content locally.  
+Once a quiz is saved, **LexiQuest automatically analyzes quiz performance data** to update  
+your personalized **Skill Graph**, showing growth across grammar, vocabulary, and comprehension.
+
+---
+
+## 🛠️ Built With
+
+- HTML, CSS, JavaScript  
+- Chrome Built-in Gemini Nano APIs  
+  - **Prompt API**  
+  - **Translator API**  
+  - **Rewriter API**  
+  - **Language Detector API**
+
+---
+
+## 🧠 Vision
+
+LexiQuest aims to make language learning feel natural and contextual —  
+turning everyday reading into micro-learning experiences.  
+No separate app, no distractions — just smarter browsing.
+
+---
