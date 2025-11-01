@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const modeButtons = document.querySelectorAll('.mode-selector button');
   const loader = document.getElementById('loader');
   const quizLoader = document.getElementById('Quizloader');
+  const saveQuizLoader = document.getElementById('Saveloader');
   const translateBtn = document.getElementById('translate');
   const generateQuizBtn = document.getElementById('generateQuiz');
   const saveQuizBtn = document.getElementById('saveQuiz');
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(text)
 
     generateQuizBtn.disabled = true;
+    
     //quizContainer.innerHTML = '<p id="l1" style="text-align:center; color:#2563eb;"> Generating quiz, please wait...</p>';
 
     quizLoader.style.display = 'inline-block';
@@ -124,10 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("inside try")
       const quizData = await handleAction('generateQuiz', text, { targetLanguage: lang });
       console.log("before render quiz");
+      console.log("Quiz data received from Gemini Nano:", quizData);
       renderQuiz(quizData);
       console.log("after render quiz");
       quizContainer.style.display = 'block';
       saveQuizBtn.style.display = 'inline-block';
+      saveQuizBtn.disabled =false;
     } catch (err) {
       quizContainer.textContent = '⚠️ Failed to generate quiz: ' + err.message;
     } finally {
@@ -139,6 +143,80 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
+// function renderQuiz(quizData) {
+//   quizContainer.innerHTML = `
+//     <h3>Quiz Time!</h3>
+//     ${quizData.map((q, i) => `
+//       <div class="quiz-question" data-index="${i}" style="margin-bottom:10px;">
+//         <p><b>Q${i + 1}:</b> ${q.question}</p>
+//         ${
+//           q.type === 'mcq'
+//             ? q.options.map((opt, idx) => {
+//                 const letter = String.fromCharCode(65 + idx); // A, B, C, D
+//                 return `
+//                   <label style="display:block;">
+//                     <input type="radio" name="q${i}" value="${letter}"> 
+//                     <b>${letter}.</b> ${opt}
+//                   </label>
+//                 `;
+//               }).join('')
+//             : `<input type="text" class="fill-answer" placeholder="Type your answer and press Enter..." style="width:90%; padding:5px;">`
+//         }
+//         <div class="feedback" style="margin-top:4px; font-size:0.85rem;"></div>
+//       </div>
+//     `).join('')}
+//   `;
+
+//   // Attach event listeners for MCQs
+//   quizData.forEach((q, i) => {
+//     const qEl = quizContainer.querySelector(`.quiz-question[data-index="${i}"]`);
+//     const feedbackEl = qEl.querySelector('.feedback');
+
+//     if (q.type === 'mcq') {
+//       const radios = qEl.querySelectorAll('input[type="radio"]');
+//       const correctLetter = q.answer.trim().replace(/\W/g, '').toUpperCase(); // normalize e.g. "b." → "B"
+//       const correctIndex = correctLetter.charCodeAt(0) - 65; // map A→0, B→1, ...
+//       const correctOption = q.options[correctIndex] || '';
+
+//       radios.forEach(radio => {
+//         radio.addEventListener('change', () => {
+//           const selected = qEl.querySelector('input[type="radio"]:checked');
+//           const userAnswer = selected ? selected.value.trim().toUpperCase() : '';
+
+//           if (userAnswer === correctLetter) {
+//             feedbackEl.textContent = `✅ Correct! (${correctLetter}. ${correctOption})`;
+//             feedbackEl.style.color = 'green';
+//           } else {
+//             feedbackEl.textContent = `❌ Incorrect. Correct answer: ${correctLetter}. ${correctOption}`;
+//             feedbackEl.style.color = 'red';
+//           }
+
+//           // Disable all options after selection
+//           radios.forEach(r => r.disabled = true);
+//         });
+//       });
+//     } else {
+//       // Fill-in-the-blank handling
+//       const input = qEl.querySelector('.fill-answer');
+//       input.addEventListener('keydown', (e) => {
+//         if (e.key === 'Enter') {
+//           const userAnswer = input.value.trim();
+//           if (!userAnswer) return;
+
+//           if (userAnswer.toLowerCase() === q.answer.toLowerCase()) {
+//             feedbackEl.textContent = '✅ Correct!';
+//             feedbackEl.style.color = 'green';
+//           } else {
+//             feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
+//             feedbackEl.style.color = 'red';
+//           }
+
+//           input.disabled = true;
+//         }
+//       });
+//     }
+//   });
+// }
 function renderQuiz(quizData) {
   quizContainer.innerHTML = `
     <h3>Quiz Time!</h3>
@@ -147,15 +225,12 @@ function renderQuiz(quizData) {
         <p><b>Q${i + 1}:</b> ${q.question}</p>
         ${
           q.type === 'mcq'
-            ? q.options.map((opt, idx) => {
-                const letter = String.fromCharCode(65 + idx); // A, B, C, D
-                return `
-                  <label style="display:block;">
-                    <input type="radio" name="q${i}" value="${letter}"> 
-                    <b>${letter}.</b> ${opt}
-                  </label>
-                `;
-              }).join('')
+            ? q.options.map(opt => `
+                <label style="display:block;">
+                  <input type="radio" name="q${i}" value="${opt}"> 
+                  ${opt}
+                </label>
+              `).join('')
             : `<input type="text" class="fill-answer" placeholder="Type your answer and press Enter..." style="width:90%; padding:5px;">`
         }
         <div class="feedback" style="margin-top:4px; font-size:0.85rem;"></div>
@@ -163,27 +238,24 @@ function renderQuiz(quizData) {
     `).join('')}
   `;
 
-  // Attach event listeners for MCQs
+  // Attach event listeners
   quizData.forEach((q, i) => {
     const qEl = quizContainer.querySelector(`.quiz-question[data-index="${i}"]`);
     const feedbackEl = qEl.querySelector('.feedback');
 
     if (q.type === 'mcq') {
       const radios = qEl.querySelectorAll('input[type="radio"]');
-      const correctLetter = q.answer.trim().replace(/\W/g, '').toUpperCase(); // normalize e.g. "b." → "B"
-      const correctIndex = correctLetter.charCodeAt(0) - 65; // map A→0, B→1, ...
-      const correctOption = q.options[correctIndex] || '';
 
       radios.forEach(radio => {
         radio.addEventListener('change', () => {
           const selected = qEl.querySelector('input[type="radio"]:checked');
-          const userAnswer = selected ? selected.value.trim().toUpperCase() : '';
+          const userAnswer = selected ? selected.value : '';
 
-          if (userAnswer === correctLetter) {
-            feedbackEl.textContent = `✅ Correct! (${correctLetter}. ${correctOption})`;
+          if (userAnswer === q.answer) {
+            feedbackEl.textContent = `✅ Correct! (${q.answer})`;
             feedbackEl.style.color = 'green';
           } else {
-            feedbackEl.textContent = `❌ Incorrect. Correct answer: ${correctLetter}. ${correctOption}`;
+            feedbackEl.textContent = `❌ Incorrect. Correct answer: ${q.answer}`;
             feedbackEl.style.color = 'red';
           }
 
@@ -191,8 +263,9 @@ function renderQuiz(quizData) {
           radios.forEach(r => r.disabled = true);
         });
       });
+
     } else {
-      // Fill-in-the-blank handling
+      // Fill-in-the-blank
       const input = qEl.querySelector('.fill-answer');
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -215,12 +288,16 @@ function renderQuiz(quizData) {
 }
 
 
+
  saveQuizBtn?.addEventListener('click', async (e) => {
   e.preventDefault(); // prevent popup auto-closing
 
   const lang = langSelect.value;
   const quizHtml = quizContainer.innerHTML;
   const translatedText = lastTranslatedText || outputEl.textContent.trim();
+
+  saveQuizLoader.style.display = 'inline-block';
+  saveQuizBtn.disabled = true;
 
   if (!translatedText || !quizHtml) {
     alert('⚠️ Please translate text and generate a quiz before saving.');
@@ -271,8 +348,10 @@ function renderQuiz(quizData) {
   await chrome.storage.local.set({ notebooks });
   await chrome.storage.local.set({ skillAnalysis: analysis });
 
+  saveQuizLoader.style.display = 'none';
+  //saveQuizBtn.disabled = false;
   alert(`✅ Saved to your "${lang}" notebook with AI analysis!`);
-});
+  });
 
 
   const openNotebookBtn = document.getElementById('openNotebook');

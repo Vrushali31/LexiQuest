@@ -72,38 +72,49 @@ async function generateQuiz(text, { targetLanguage }) {
   ]
   `;
 
+
   try {
-    // ✅ Use Gemini Nano (Prompt API)
-    if ("ai" in self && "languageModel" in ai) {
-      console.log("Using Gemini Nano (local model)...");
-      const session = await ai.languageModel.create({ model: "gemini-nano" });
+  console.log("Using Gemini Nano via Prompt API...");
 
-      const result = await session.prompt(prompt);
-      console.log("✅ Gemini Nano raw result:", result);
-
-      // Try to parse clean JSON
-      const jsonStart = result.indexOf('[');
-      const jsonEnd = result.lastIndexOf(']');
-      const cleanJson = result.slice(jsonStart, jsonEnd + 1);
-
-      const quiz = JSON.parse(cleanJson);
-      console.log("✅ Parsed quiz JSON:", quiz);
-      return quiz;
-    }
-
-    // Fallback (if Nano not available)
-    console.warn("⚠️ Gemini Nano not available, using fallback cloud model...");
-    const response = await GeminiNano.write(prompt, { tone: 'neutral', outputLanguage: targetLanguage });
-    const jsonStart = response.indexOf('[');
-    const jsonEnd = response.lastIndexOf(']');
-    const cleanJson = response.slice(jsonStart, jsonEnd + 1);
-
-    const quiz = JSON.parse(cleanJson);
-    return quiz;
-
-  } catch (err) {
-    console.error("❌ Error generating quiz:", err);
-    throw new Error("Quiz generation failed. " + err.message);
+  // Check availability
+  const availability = await LanguageModel.availability({ model: "gemini-nano" });
+  console.log("Gemini Nano availability:", availability);
+  if (availability === "downloading") {
+    console.log("Gemini Nano is downloading...");
+    availability.monitor?.addEventListener("downloadprogress", (e) => {
+      console.log(`Downloaded ${(e.loaded * 100).toFixed(2)}%`);
+    });
+  } else if (availability !== "available") {
+    throw new Error("Gemini Nano not available for this session.");
   }
+
+  // Create a session
+  const session = await LanguageModel.create({
+    model: "gemini-nano",
+    monitor(m) {
+      m.addEventListener("downloadprogress", (e) => {
+        console.log(`Downloaded ${(e.loaded * 100).toFixed(2)}%`);
+      });
+    },
+  });
+
+  // Prompt the model
+  const result = await session.prompt(prompt);
+  console.log("✅ Gemini Nano raw result:", result);
+
+  // Parse JSON from result
+  const jsonStart = result.indexOf("[");
+  const jsonEnd = result.lastIndexOf("]");
+  const cleanJson = result.slice(jsonStart, jsonEnd + 1);
+
+  const quiz = JSON.parse(cleanJson);
+  console.log("✅ Parsed quiz JSON:", quiz);
+  return quiz;
+
+} catch (err) {
+  console.error("❌ Error generating quiz:", err);
+  throw new Error("Quiz generation failed. " + err.message);
+}
+
 }
 
