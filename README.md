@@ -1,7 +1,7 @@
 # 🧠 LexiQuest — Chrome Extension
 ![image](https://github.com/user-attachments/assets/ea19a901-489e-4eed-b1d3-5a05253fd11e)
 
-YouTube Demo:
+### YouTube Demo:
 [![Watch the demo](https://img.youtube.com/vi/9kQodDaTzBQ/hqdefault.jpg)](https://www.youtube.com/watch?v=9kQodDaTzBQ)
 
 ### *Your AI-Powered Learning Assistant*
